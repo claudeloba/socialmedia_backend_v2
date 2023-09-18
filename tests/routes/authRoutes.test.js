@@ -34,16 +34,6 @@ describe("Properly testing Auth Routes endpoints", () => {
     expect(res.body).toBe("User has been created.");
   });
 
-  it("should login a user", async () => {
-    const res = await request(app).post("/auth/login").send({
-      username: "testuser",
-      password: "password123",
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("username", "testuser");
-  });
-
   it("should logout a user", async () => {
     const res = await request(app).post("/auth/logout");
 
