@@ -4,9 +4,9 @@ import {
   addPost,
   deletePost,
   editPost,
-} from "../controllers/post.js";
+} from "../controllers/post.controller.js";
 import { sanitizeAddPost } from "../middleware/sanitizeInputs.js";
-import authenticate from "../middleware/authMiddleware.js";
+import authenticate from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 

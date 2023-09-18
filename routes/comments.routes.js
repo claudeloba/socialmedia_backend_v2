@@ -3,9 +3,9 @@ import {
   getComments,
   addComment,
   deleteComment,
-} from "../controllers/comment.js";
+} from "../controllers/comment.controller.js";
 import { sanitizeAddComment } from "../middleware/sanitizeInputs.js";
-import authenticate from "../middleware/authMiddleware.js";
+import authenticate from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
