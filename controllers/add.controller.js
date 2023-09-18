@@ -1,9 +1,11 @@
-import db from "../config/db.config.js";
 import asyncHandler from "express-async-handler";
+import User from "../models/User.model.js";
 
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const q = "SELECT * FROM users";
-
-  const [data] = await db.promise().query(q);
-  res.status(200).json(data);
+  try {
+    const users = await User.find({});
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching users", error: error });
+  }
 });

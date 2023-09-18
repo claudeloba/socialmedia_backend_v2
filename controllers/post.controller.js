@@ -1,31 +1,43 @@
-import db from "../config/db.config.js";
-import moment from "moment";
+import Post from "../models/Post.model.js";
+import Relationship from "../models/Relationship.model.js";
+import asyncHandler from "express-async-handler";
 import {
   addPostSchema,
   postIdSchema,
   updatePostSchema,
 } from "../validators/postValidator.js";
-import asyncHandler from "express-async-handler";
 
 export const getPosts = asyncHandler(async (req, res) => {
   const userId = req.query.userId;
   const userInfo = req.user;
 
-  const q =
-    userId !== "undefined"
-      ? `SELECT p.*, u.id AS userId, name, profilePic FROM posts AS p JOIN users AS u ON (u.id = p.userId) WHERE p.userId = ? ORDER BY p.createdAt DESC`
-      : `SELECT DISTINCT p.*, u.id AS userId, name, profilePic FROM posts AS p JOIN users AS u ON (u.id = p.userId)
-LEFT JOIN relationships AS r ON (p.userId = r.followedUserId) WHERE r.followerUserId= ? OR p.userId =?
-ORDER BY p.createdAt DESC`;
+  try {
+    let posts = [];
+    if (userId !== "undefined") {
+      posts = await Post.find({ userId: userId })
+        .populate("userId", "username profilePic")
+        .sort({ createdAt: -1 });
+    } else {
+      const relationships = await Relationship.find({
+        followerUserId: userInfo.id,
+      });
+      const followedUserIds = relationships.map((rel) => rel.followedUserId);
+      followedUserIds.push(userInfo.id);
 
-  const values = userId !== "undefined" ? [userId] : [userInfo.id, userInfo.id];
-
-  const [data] = await db.promise().query(q, values);
-  res.status(200).json(data);
+      posts = await Post.find({ userId: { $in: followedUserIds } })
+        .populate("userId", "username profilePic")
+        .sort({ createdAt: -1 });
+    }
+    res.status(200).json(posts);
+  } catch (error) {
+    console.log("Error:", error);
+    res.status(500).json(error);
+  }
 });
 
 export const addPost = asyncHandler(async (req, res) => {
   const userInfo = req.user;
+  console.log(req.user);
 
   const { error } = addPostSchema.validate(req.body);
   if (error) {
@@ -33,16 +45,13 @@ export const addPost = asyncHandler(async (req, res) => {
     return res.status(400).json(error.details[0].message);
   }
 
-  const q =
-    "INSERT INTO posts(`desc`, `img`, `createdAt`, `userId`) VALUES (?)";
-  const values = [
-    req.body.desc,
-    req.body.img,
-    moment(Date.now()).format("YYYY-MM-DD HH:mm:ss"),
-    userInfo.id,
-  ];
+  const newPost = new Post({
+    desc: req.body.desc,
+    img: req.body.img,
+    userId: userInfo.id,
+  });
 
-  await db.promise().query(q, [values]);
+  await newPost.save();
   res.status(200).json("Post has been created.");
 });
 
@@ -55,23 +64,13 @@ export const deletePost = asyncHandler(async (req, res) => {
     return res.status(400).json(error.details[0].message);
   }
 
-  const post = await db
-    .promise()
-    .query("SELECT * FROM posts WHERE `id`=? AND `userId` = ?", [
-      req.params.id,
-      userInfo.id,
-    ]);
-  if (post[0].length === 0) {
-    return res.status(403).json("You are not the owner of this post");
+  const post = await Post.findOne({ _id: req.params.id, userId: userInfo.id });
+  if (!post) {
+    return res.status(403).json("You are not the owner of this post.");
   }
 
-  await db
-    .promise()
-    .query("DELETE FROM posts WHERE `id`=? AND `userId` = ?", [
-      req.params.id,
-      userInfo.id,
-    ]);
-  return res.status(200).json("Post has been deleted.");
+  await Post.findByIdAndDelete(req.params.id);
+  res.status(200).json("Post has been deleted.");
 });
 
 export const editPost = asyncHandler(async (req, res) => {
@@ -89,22 +88,15 @@ export const editPost = asyncHandler(async (req, res) => {
     return res.status(400).json(validationError.details[0].message);
   }
 
-  const post = await db
-    .promise()
-    .query("SELECT * FROM posts WHERE `id`=? AND `userId`=?", [
-      req.params.id,
-      userInfo.id,
-    ]);
-  if (post[0].length === 0) {
-    return res.status(403).json("You are not the owner of this post");
+  const post = await Post.findOneAndUpdate(
+    { _id: req.params.id, userId: userInfo.id },
+    { desc: req.body.desc },
+    { new: true }
+  );
+
+  if (!post) {
+    return res.status(403).json("You are not the owner of this post.");
   }
 
-  await db
-    .promise()
-    .query("UPDATE posts SET `desc`=? WHERE `id`=? AND `userId`=?", [
-      req.body.desc,
-      req.params.id,
-      userInfo.id,
-    ]);
-  return res.status(200).json("Post has been updated.");
+  res.status(200).json("Post has been updated.");
 });

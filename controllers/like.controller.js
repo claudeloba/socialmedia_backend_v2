@@ -1,10 +1,10 @@
-import db from "../config/db.config.js";
 import asyncHandler from "express-async-handler";
 import {
   getLikesSchema,
   addLikeSchema,
   deleteLikeSchema,
 } from "../validators/likeValidator.js";
+import Post from "../models/Post.model.js";
 
 export const getLikes = asyncHandler(async (req, res) => {
   const { error } = getLikesSchema.validate(req.query);
@@ -12,32 +12,27 @@ export const getLikes = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error(error.details[0].message);
   }
+  const post = await Post.findById(req.query.postId).select("likes");
 
-  const q = "SELECT userId FROM likes WHERE postId = ?";
+  const userIds = post.likes.map((like) => like.userId);
 
-  const [rows] = await db.promise().query(q, [req.query.postId]);
-
-  res.status(200).json(rows.map((like) => like.userId));
+  res.status(200).json(userIds);
 });
 
 export const addLike = asyncHandler(async (req, res) => {
-  const { error } = addLikeSchema.validate(req.body);
-  if (error) {
-    res.status(400);
-    throw new Error(error.details[0].message);
-  }
-
   const userInfo = req.user;
 
-  const q = "INSERT INTO likes (`userId`,`postId`) VALUES (?)";
-  const values = [userInfo.id, req.body.postId];
-
-  await db.promise().query(q, [values]);
+  await Post.updateOne(
+    { _id: req.body.postId },
+    { $push: { likes: { userId: userInfo.id } } }
+  );
 
   res.status(200).json("Post has been liked.");
 });
 
 export const deleteLike = asyncHandler(async (req, res) => {
+  console.log("req.body.postId:", req.body.postId);
+  console.log("req.query.postId:", req.query.postId);
   const { error } = deleteLikeSchema.validate(req.query);
   if (error) {
     res.status(400);
@@ -46,9 +41,10 @@ export const deleteLike = asyncHandler(async (req, res) => {
 
   const userInfo = req.user;
 
-  const q = "DELETE FROM likes WHERE `userId` = ? AND `postId` = ?";
-
-  await db.promise().query(q, [userInfo.id, req.query.postId]);
+  await Post.updateOne(
+    { _id: req.query.postId },
+    { $pull: { likes: { userId: userInfo.id } } }
+  );
 
   res.status(200).json("Post has been disliked.");
 });

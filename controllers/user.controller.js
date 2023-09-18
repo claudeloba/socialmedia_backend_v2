@@ -1,4 +1,4 @@
-import db from "../config/db.config.js";
+import User from "../models/User.model.js";
 import asyncHandler from "express-async-handler";
 import {
   getUserSchema,
@@ -6,9 +6,13 @@ import {
 } from "../validators/userValidator.js";
 
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const q = "SELECT * FROM users";
-  const data = await db.promise().query(q);
-  return res.status(200).json(data[0]);
+  try {
+    const users = await User.find({});
+    return res.status(200).json(users);
+  } catch (err) {
+    console.error("Error:", err);
+    return res.status(500).json(err);
+  }
 });
 
 export const getUser = asyncHandler(async (req, res) => {
@@ -17,16 +21,23 @@ export const getUser = asyncHandler(async (req, res) => {
     console.log("Validation error:", error.details[0].message);
     return res.status(400).json(error.details[0].message);
   }
+  const { userId } = req.params;
+  console.log("USER ID: " + userId);
 
-  const userId = req.params.userId;
-  const q = "SELECT * FROM users WHERE id=?";
-  const data = await db.promise().query(q, [userId]);
-  const { password, ...info } = data[0][0];
-  return res.json(info);
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json("User not found");
+
+    const { password, ...info } = user.toObject();
+    return res.status(200).json(info);
+  } catch (err) {
+    console.error("Error:", err);
+    return res.status(500).json(err);
+  }
 });
 
 export const updateUser = asyncHandler(async (req, res) => {
-  const userInfo = req.user;
+  console.log("Received update payload:", req.body);
 
   const { error } = updateUserSchema.validate(req.body);
   if (error) {
@@ -34,23 +45,28 @@ export const updateUser = asyncHandler(async (req, res) => {
     return res.status(400).json(error.details[0].message);
   }
 
-  const q =
-    "UPDATE users SET `name`=?,`city`=?,`website`=?,`profilePic`=?,`coverPic`=? WHERE id=? ";
-
-  db.query(
-    q,
-    [
-      req.body.name,
-      req.body.city,
-      req.body.website,
-      req.body.profilePic,
-      req.body.coverPic,
-      userInfo.id,
-    ],
-    (err, data) => {
-      if (err) res.status(500).json(err);
-      if (data.affectedRows > 0) return res.json("Updated succesfully");
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        $set: {
+          username: req.body.username,
+          city: req.body.city,
+          website: req.body.website,
+          profilePic: req.body.profilePic,
+          coverPic: req.body.coverPic,
+        },
+      },
+      { new: true, runValidators: true }
+    );
+    console.log("Updated user:", updatedUser);
+    if (!updatedUser) {
       return res.status(403).json("You are not the owner of this profile.");
     }
-  );
+
+    return res.status(200).json("Updated successfully");
+  } catch (err) {
+    console.error("Error:", err);
+    return res.status(500).json(err);
+  }
 });
