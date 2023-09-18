@@ -1,7 +1,6 @@
 import asyncHandler from "express-async-handler";
 import {
   getCommentsSchema,
-  addCommentSchema,
   deleteCommentSchema,
 } from "../validators/commentValidator.js";
 import Comment from "../models/Comment.model.js";
