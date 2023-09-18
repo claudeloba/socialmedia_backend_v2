@@ -1,7 +1,6 @@
 import asyncHandler from "express-async-handler";
 import {
   getLikesSchema,
-  addLikeSchema,
   deleteLikeSchema,
 } from "../validators/likeValidator.js";
 import Post from "../models/Post.model.js";
@@ -24,7 +23,7 @@ export const addLike = asyncHandler(async (req, res) => {
 
   await Post.updateOne(
     { _id: req.body.postId },
-    { $push: { likes: { userId: userInfo.id } } }
+    { $push: { likes: { userId: userInfo.id } } },
   );
 
   res.status(200).json("Post has been liked.");
@@ -43,7 +42,7 @@ export const deleteLike = asyncHandler(async (req, res) => {
 
   await Post.updateOne(
     { _id: req.query.postId },
-    { $pull: { likes: { userId: userInfo.id } } }
+    { $pull: { likes: { userId: userInfo.id } } },
   );
 
   res.status(200).json("Post has been disliked.");

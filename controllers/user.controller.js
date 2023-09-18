@@ -28,6 +28,7 @@ export const getUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.userId);
     if (!user) return res.status(404).json("User not found");
 
+    // eslint-disable-next-line no-unused-vars
     const { password, ...info } = user.toObject();
     return res.status(200).json(info);
   } catch (err) {
@@ -57,7 +58,7 @@ export const updateUser = asyncHandler(async (req, res) => {
           coverPic: req.body.coverPic,
         },
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
     console.log("Updated user:", updatedUser);
     if (!updatedUser) {
