@@ -4,17 +4,17 @@ import dotenv from "dotenv";
 import multer from "multer";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-import authRoutes from "./routes/auth.js";
-import userRoutes from "./routes/users.js";
-import postRoutes from "./routes/posts.js";
-import commentRoutes from "./routes/comments.js";
-import likeRoutes from "./routes/likes.js";
-import relationshipRoutes from "./routes/relationships.js";
-import usersRouter from "./routes/add.js";
-
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/users.routes.js";
+import postRoutes from "./routes/posts.routes.js";
+import commentRoutes from "./routes/comments.routes.js";
+import likeRoutes from "./routes/likes.routes.js";
+import relationshipRoutes from "./routes/relationships.routes.js";
+import usersRouter from "./routes/add.routes.js";
+import connection from "./config/db.config.js";
 dotenv.config();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 const app = express();
 
 app.use(helmet());
@@ -53,6 +53,18 @@ app.use("/api/likes", likeRoutes);
 app.use("/api/relationships", relationshipRoutes);
 app.use("/api/users", usersRouter);
 
-app.listen(PORT, () => {
-  console.log("Server is live on http://localhost:" + PORT);
-});
+const startServer = async () => {
+  try {
+    await connection();
+    app.listen(PORT, () => console.log(`Server live on ${PORT}`));
+  } catch (error) {
+    console.error("Could not start server", error);
+    process.exit(1);
+  }
+};
+
+if (process.env.NODE_ENV !== "test") {
+  startServer();
+}
+
+export default app;

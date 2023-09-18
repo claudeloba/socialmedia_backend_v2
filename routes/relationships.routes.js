@@ -3,8 +3,8 @@ import {
   getRelationships,
   addRelationship,
   deleteRelationship,
-} from "../controllers/relationship.js";
-import authenticate from "../middleware/authMiddleware.js";
+} from "../controllers/relationship.controller.js";
+import authenticate from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 

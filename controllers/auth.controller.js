@@ -1,12 +1,11 @@
-import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { registerSchema, loginSchema } from "../validators/authValidator.js";
 import dotenv from "dotenv";
 import asyncHandler from "express-async-handler";
+import User from "../models/User.model.js";
 
 dotenv.config();
-
 const jwtKey = process.env.JWT_KEY;
 
 export const register = asyncHandler(async (req, res) => {
@@ -16,10 +15,8 @@ export const register = asyncHandler(async (req, res) => {
     throw new Error(error.details[0].message);
   }
 
-  const q = "SELECT * FROM users WHERE username = ?";
-  const [rows] = await db.promise().query(q, [req.body.username]);
-
-  if (rows.length) {
+  const existingUser = await User.findOne({ username: req.body.username });
+  if (existingUser) {
     res.status(409);
     throw new Error("User already exists!");
   }
@@ -27,23 +24,20 @@ export const register = asyncHandler(async (req, res) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-  const insertQuery =
-    "INSERT INTO users (`username`, `email`, `password`, `name`, `profilePic`, `coverPic`) VALUES (?, ?, ?, ?, ?, ?)";
-
   const defaultProfilePic =
     "/depositphotos_133351928-stock-illustration-default-placeholder-man-and-woman.jpg";
   const defaultCoverPic = "/pexels-photo-1423600.jpeg";
 
-  const values = [
-    req.body.username,
-    req.body.email,
-    hashedPassword,
-    req.body.name,
-    defaultProfilePic,
-    defaultCoverPic,
-  ];
+  const newUser = new User({
+    username: req.body.username,
+    email: req.body.email,
+    password: hashedPassword,
+    name: req.body.name,
+    profilePic: defaultProfilePic,
+    coverPic: defaultCoverPic,
+  });
 
-  await db.promise().query(insertQuery, values);
+  await newUser.save();
 
   res.status(200).json("User has been created.");
 });
@@ -52,39 +46,31 @@ export const login = asyncHandler(async (req, res) => {
   const { error } = loginSchema.validate(req.body);
   if (error) {
     res.status(400);
-    throw new Error(
-      `Password must be at least 6 characters long: ${error.details[0].message}`
-    );
+    throw new Error(error.details[0].message);
   }
 
-  const q = "SELECT * FROM users WHERE username = ?";
-  const [rows] = await db.promise().query(q, [req.body.username]);
+  const user = await User.findOne({ username: req.body.username });
 
-  if (!rows.length) {
+  if (!user) {
     res.status(404);
     throw new Error("User not found!");
   }
 
-  const checkPassword = await bcrypt.compare(
-    req.body.password,
-    rows[0].password
-  );
+  const checkPassword = await bcrypt.compare(req.body.password, user.password);
 
   if (!checkPassword) {
     res.status(400);
     throw new Error("Wrong password or username!");
   }
 
-  const token = jwt.sign({ id: rows[0].id }, jwtKey);
-
-  const { password, ...others } = rows[0];
+  const token = jwt.sign({ id: user._id }, jwtKey);
 
   res
     .cookie("accessToken", token, {
       httpOnly: true,
     })
     .status(200)
-    .json(others);
+    .json(user);
 });
 
 export const logout = asyncHandler(async (req, res) => {
