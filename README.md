@@ -1,3 +1,9 @@
+# `TO_DO`
+
+For the future I will implement cloudinary for storing and uploading images.
+
+## `STORY`
+
 The final assignment for Backend 2 was to create a social media app.
 Something I have previously built a couple of times.
 Therefore, to challenge myself this time, I decided to try and revisit and old project I barely have any recollection of, and refactor and add features to the old project to meet the new criteria. One of them being migrating from a MySQL to a MongoDB-database.
