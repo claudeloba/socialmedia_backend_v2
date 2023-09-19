@@ -30,8 +30,6 @@ export const addLike = asyncHandler(async (req, res) => {
 });
 
 export const deleteLike = asyncHandler(async (req, res) => {
-  console.log("req.body.postId:", req.body.postId);
-  console.log("req.query.postId:", req.query.postId);
   const { error } = deleteLikeSchema.validate(req.query);
   if (error) {
     res.status(400);
