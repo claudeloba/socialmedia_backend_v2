@@ -12,6 +12,7 @@ import likeRoutes from "./routes/likes.routes.js";
 import relationshipRoutes from "./routes/relationships.routes.js";
 import usersRouter from "./routes/add.routes.js";
 import connection from "./config/db.config.js";
+import logger from "./config/logger.config.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 8000;
@@ -27,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: "http://localhost:3000",
-  })
+  }),
 );
 app.use(cookieParser());
 
@@ -56,9 +57,9 @@ app.use("/api/users", usersRouter);
 const startServer = async () => {
   try {
     await connection();
-    app.listen(PORT, () => console.log(`Server live on ${PORT}`));
+    app.listen(PORT);
   } catch (error) {
-    console.error("Could not start server", error);
+    logger.error(`Could not start server: ${error.message}`);
     process.exit(1);
   }
 };

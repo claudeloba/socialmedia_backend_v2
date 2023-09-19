@@ -30,18 +30,15 @@ export const getPosts = asyncHandler(async (req, res) => {
     }
     res.status(200).json(posts);
   } catch (error) {
-    console.log("Error:", error);
     res.status(500).json(error);
   }
 });
 
 export const addPost = asyncHandler(async (req, res) => {
   const userInfo = req.user;
-  console.log(req.user);
 
   const { error } = addPostSchema.validate(req.body);
   if (error) {
-    console.log("Validation error:", error.details[0].message);
     return res.status(400).json(error.details[0].message);
   }
 
@@ -60,7 +57,6 @@ export const deletePost = asyncHandler(async (req, res) => {
 
   const { error } = postIdSchema.validate(req.params);
   if (error) {
-    console.log("Validation error:", error.details[0].message);
     return res.status(400).json(error.details[0].message);
   }
 
@@ -78,20 +74,18 @@ export const editPost = asyncHandler(async (req, res) => {
 
   const { error } = postIdSchema.validate(req.params);
   if (error) {
-    console.log("Validation error:", error.details[0].message);
     return res.status(400).json(error.details[0].message);
   }
 
   const { error: validationError } = updatePostSchema.validate(req.body);
   if (validationError) {
-    console.log("Validation error:", validationError.details[0].message);
     return res.status(400).json(validationError.details[0].message);
   }
 
   const post = await Post.findOneAndUpdate(
     { _id: req.params.id, userId: userInfo.id },
     { desc: req.body.desc },
-    { new: true }
+    { new: true },
   );
 
   if (!post) {
