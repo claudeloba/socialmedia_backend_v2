@@ -30,7 +30,6 @@ export const addRelationship = asyncHandler(async (req, res) => {
     followerUserId: userInfo.id,
     followedUserId: req.body.userId,
   });
-  console.log(userInfo);
   await newRelationship.save();
   res.status(200).json("Following");
 });
